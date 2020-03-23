@@ -1,0 +1,93 @@
+version: "2.4"
+
+services:
+  nginx:
+    image: nginx
+    networks:
+      - ivan-vps
+    volumes:
+      - le-certificates:/etc/nginx/certs
+      - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
+    depends_on:
+      - letsencrypt
+    ports:
+      - 80:80
+      - 443:443
+
+  letsencrypt:
+    image: linuxserver/letsencrypt
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - URL=ivan.build
+      - SUBDOMAINS=wildcard
+      - VALIDATION=dns
+      - DNSPLUGIN=cloudflare
+      - EMAIL=${LE_EMAIL}
+    volumes:
+      - ./cloudflare.ini:/config/dns-conf/cloudflare.ini
+      - le-certificates:/config/etc/letsencrypt
+    
+  trilium:
+    image: zadam/trilium:0.40.6
+    container_name: trilium
+    networks:
+      ivan-vps:
+        aliases:
+          - trilium
+    volumes:
+      - ~/trilium-data:/root/trilium-data
+
+  syncthing:
+    image: linuxserver/syncthing:v1.4.0-ls28
+    container_name: syncthing
+    networks:
+      ivan-vps:
+        aliases:
+          - syncthing
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/London"
+      UMASK_SET: "022"
+    volumes:
+      - /appdata/config:/config
+      - /data1:/data1
+      - /data2:/data2
+    ports:
+      - 22000:22000
+      - 21027:21027/udp
+
+  iredmail:
+    image: lejmr/iredmail:mysql-1.1-latest
+    container_name: iredmail
+    networks:
+      ivan-vps:
+        aliases:
+          - iredmail
+    environment:
+      MYSQL_ROOT_PASSWORD: ${IRED_MYSQL_PWD}
+      SOGO_WORKERS: 1
+      TZ: "Europe/Prague"
+      POSTMASTER_PASSWORD: ${IRED_POSTMASTER_PWD}
+      IREDAPD_PLUGINS: "['reject_null_sender', 'reject_sender_login_mismatch', 'greylisting', 'throttle', 'amavisd_wblist', 'sql_alias_access_policy']"
+    volumes:
+      - /srv/iredmail/mysql:/var/lib/mysql
+      - /srv/iredmail/vmail:/var/vmail
+      - /srv/iredmail/clamav:/var/lib/clamav
+    ports:
+      - 25:25
+      - 587:587
+      - 110:110
+      - 143:143
+      - 993:993
+      - 995:995
+
+networks:
+  ivan-vps:
+
+volumes:
+  le-certificates:
