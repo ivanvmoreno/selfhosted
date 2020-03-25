@@ -1,0 +1,3 @@
+#!/bin/sh
+
+MAILCOW_BACKUP_LOCATION=~/sv-backups/mailcow /opt/mailcow-dockerized/helper-scripts/backup_and_restore.sh backup all --delete-days 1
