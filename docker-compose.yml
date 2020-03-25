@@ -30,16 +30,6 @@ services:
     volumes:
       - ./cloudflare.ini:/config/dns-conf/cloudflare.ini
       - le-certificates:/config/etc/letsencrypt
-    
-  trilium:
-    image: zadam/trilium:0.40.6
-    container_name: trilium
-    networks:
-      ivan-vps:
-        aliases:
-          - trilium
-    volumes:
-      - ~/trilium-data:/root/trilium-data
 
   syncthing:
     image: linuxserver/syncthing:v1.4.0-ls28
@@ -80,3 +70,7 @@ networks:
 
 volumes:
   le-certificates:
+    driver: local
+    driver_opts:
+      device: /config/etc/letsencrypt
+      o: bind
