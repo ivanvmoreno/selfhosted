@@ -8,8 +8,6 @@ services:
     volumes:
       - le-certificates:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
-    depends_on:
-      - letsencrypt
     ports:
       - 80:80
       - 443:443
@@ -23,7 +21,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
       - URL=ivan.build
-      - SUBDOMAINS=wildcard
+      - SUBDOMAINS=sync,pass,mail
       - VALIDATION=dns
       - DNSPLUGIN=cloudflare
       - EMAIL=${LE_EMAIL}
@@ -72,5 +70,6 @@ volumes:
   le-certificates:
     driver: local
     driver_opts:
-      device: /config/etc/letsencrypt
+      type: nfs
       o: bind
+      device: /config/etc/letsencrypt
