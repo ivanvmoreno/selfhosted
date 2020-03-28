@@ -3,8 +3,14 @@ version: "3.7"
 services:
   nginx:
     image: nginx
+    depends_on:
+      - letsencrypt
+      - syncthing
+      - bitwarden
+      - ffsync
+      - wekan
     networks:
-      - ivan-vps
+      - front
     volumes:
       - le-certificates:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
@@ -21,7 +27,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
       - URL=ivan.build
-      - SUBDOMAINS=sync,pass,mail
+      - SUBDOMAINS=sync,pass,ffsync,mail,boards
       - VALIDATION=dns
       - DNSPLUGIN=cloudflare
       - EMAIL=${LE_EMAIL}
@@ -33,7 +39,7 @@ services:
     image: linuxserver/syncthing:v1.4.0-ls28
     container_name: syncthing
     networks:
-      ivan-vps:
+      front:
         aliases:
           - syncthing
     environment:
@@ -52,19 +58,73 @@ services:
   bitwarden:
     image: bitwardenrs/server
     networks:
-      ivan-vps:
+      front:
         aliases:
           - bitwarden
     environment:
       WEBSOCKET_ENABLED: 'true'
       SIGNUPS_ALLOWED: 'false'
     volumes:
-      - ~/bw-data:/data
+      - /opt/bw-data:/data
     ports:
       - 3012:3012
 
+  ffsync:
+    image: syncserver
+    networks:
+      front:
+        aliases:
+          - ffsync
+    environment:
+      - SYNCSERVER_PUBLIC_URL=https://ffsync.ivan.build
+      - SYNCSERVER_SECRET=${FFSYNC_SECRET}
+      - SYNCSERVER_SQLURI=sqlite:////data/syncserver.db
+      - SYNCSERVER_BATCH_UPLOAD_ENABLED=true
+      - SYNCSERVER_FORCE_WSGI_ENVIRON=true
+      - SYNCSERVER_ALLOW_NEW_USER=true
+      - PORT=5000
+    volumes:
+      - /opt/ffsync-data/:/data
+    ports:
+      - 5000
+
+  wekan-db:
+    image: mongo:3.2.21
+    command: mongod --smallfiles --oplogSize 128
+    networks:
+      wekan-internal:
+        aliases:
+          - wekan-db
+    ports:
+      - 27017
+    volumes:
+      - /opt/wekan-data:/data/db
+      - /opt/wekan-data/dump:/dump
+
+  wekan:
+    image: quay.io/wekan/wekan:master
+    depends_on:
+      - wekan-db
+    networks:
+      wekan-internal:
+      front:
+        aliases:
+          - wekan
+    environment:
+      - MONGO_URL=mongodb://wekan-db:27017/wekan
+      - ROOT_URL=https://boards.ivan.build
+      - WITH_API=true
+      - ACCOUNTS_LOCKOUT_KNOWN_USERS_FAILURES_BEFORE=3
+      - ACCOUNTS_LOCKOUT_KNOWN_USERS_PERIOD=60
+      - ACCOUNTS_LOCKOUT_KNOWN_USERS_FAILURE_WINDOW=15
+      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_FAILURES_BERORE=3
+      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_LOCKOUT_PERIOD=60
+      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_FAILURE_WINDOW=15
+      - BROWSER_POLICY_ENABLED=true
+
 networks:
-  ivan-vps:
+  front:
+  wekan-internal:
 
 volumes:
   le-certificates:
