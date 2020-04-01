@@ -9,7 +9,7 @@ services:
       - bitwarden
       - ffsync
       - wekan
-      - bookstack
+      - wikijs
     networks:
       - front
     volumes:
@@ -50,8 +50,11 @@ services:
       UMASK_SET: "022"
     volumes:
       - ~/Sync:/config
-      - /data1:/data1
-      - /data2:/data2
+      - /opt/wikijs-data:/sv-backups/wikijs-data
+      - /opt/bw-data:/sv-backups/bw-data
+      - /opt/ffsync-data:/sv-backups/ffsync-data
+      - /opt/wekan-data:/sv-backups/wekan-data
+      - /opt/mailcow-data:/sv-backups/mailcow-data
     ports:
       - 22000:22000
       - 21027:21027/udp
@@ -123,47 +126,43 @@ services:
       - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_FAILURE_WINDOW=15
       - BROWSER_POLICY_ENABLED=true
 
-  bookstack-db:
-    image: linuxserver/mariadb
+  wikijs-db:
+    image: postgres:11-alpine
     networks:
-      bookstack-internal:
-        aliases:
-          - bookstack-db
+      wikijs-internal:
     environment:
-      - PUID=1000
-      - PGID=1000
-      - MYSQL_ROOT_PASSWORD=${BOOKSTACK_DB_PASS_ROOT}
-      - TZ=Europe/London
-      - MYSQL_DATABASE=bookstackapp
-      - MYSQL_USER=bookstack
-      - MYSQL_PASSWORD=${BOOKSTACK_DB_PASS}
+      POSTGRES_DB: wikijs
+      POSTGRES_PASSWORD: ${WIKIJS_DB_PASS}
+      POSTGRES_USER: wikijs
+    logging:
+      driver: "none"
+    restart: unless-stopped
     volumes:
-      - /opt/bookstack-data:/config
+      - /opt/wikijs-data:/var/lib/postgresql/data
 
-  bookstack:
-    image: linuxserver/bookstack
-    depends_on: 
-      - bookstack-db
+  wikijs:
+    image: requarks/wiki:2
+    depends_on:
+      - wikijs-db
     networks:
-      bookstack-internal:
+      wikijs-internal:
       front:
         aliases:
-          - bookstack
+          - wikijs
     environment:
-      - APP_URL=https://wiki.ivan.build
-      - PUID=1000
-      - PGID=1000
-      - DB_HOST=bookstack-db
-      - DB_USER=bookstack
-      - DB_PASS=${BOOKSTACK_DB_PASS}
-      - DB_DATABASE=bookstackapp
+      - DB_TYPE=postgres
+      - DB_HOST=wikijs-db
+      - DB_PORT=5432
+      - DB_USER=wikijs
+      - DB_PASS=${WIKIJS_DB_PASS}
+      - DB_NAME=wikijs
     volumes:
-      - /opt/bookstack-data:/config
+      - /opt/wikijs-data/file-backups:/file-backups
 
 networks:
   front:
   wekan-internal:
-  bookstack-internal:
+  wikijs-internal:
 
 volumes:
   le-certificates:
