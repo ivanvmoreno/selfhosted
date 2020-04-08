@@ -1,75 +1,48 @@
-version: "3.7"
+version: "3.3"
 
 services:
   nginx:
     image: nginx
     depends_on:
-      - letsencrypt
       - syncthing
       - bitwarden
       - ffsync
-      - wekan
       - wikijs
     networks:
       - front
     volumes:
-      - le-certificates:/etc/nginx/certs
+      - /etc/letsencrypt:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
     ports:
       - 80:80
       - 443:443
-
-  letsencrypt:
-    image: linuxserver/letsencrypt
-    cap_add:
-      - NET_ADMIN
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
-      - URL=ivan.build
-      - SUBDOMAINS=sync,pass,mail,ffsync,boards,wiki
-      - VALIDATION=dns
-      - DNSPLUGIN=cloudflare
-      - EMAIL=${LE_EMAIL}
-    volumes:
-      - ./cloudflare.ini:/config/dns-conf/cloudflare.ini
-      - le-certificates:/config/etc/letsencrypt
 
   syncthing:
     image: linuxserver/syncthing:v1.4.0-ls28
     container_name: syncthing
     networks:
       front:
-        aliases:
-          - syncthing
     environment:
-      PUID: "1000"
-      PGID: "1000"
+      PUID: "1001"
+      PGID: "1001"
       TZ: "Europe/London"
       UMASK_SET: "022"
     volumes:
-      - ~/Sync:/config
-      - /opt/wikijs-data:/sv-backups/wikijs-data
-      - /opt/bw-data:/sv-backups/bw-data
-      - /opt/ffsync-data:/sv-backups/ffsync-data
-      - /opt/wekan-data:/sv-backups/wekan-data
-      - /opt/mailcow-data:/sv-backups/mailcow-data
+      - /mnt/hdd1/syncthing:/config
+      - /mnt/hdd1/sync-data:/sync-data
     ports:
       - 22000:22000
       - 21027:21027/udp
 
   bitwarden:
-    image: bitwardenrs/server
+    image: bitwardenrs/server:aarch64
     networks:
       front:
-        aliases:
-          - bitwarden
     environment:
       WEBSOCKET_ENABLED: 'true'
       SIGNUPS_ALLOWED: 'false'
     volumes:
-      - /opt/bw-data:/data
+      - /mnt/hdd1/bw-data:/data
     ports:
       - 3012:3012
 
@@ -77,8 +50,6 @@ services:
     image: syncserver
     networks:
       front:
-        aliases:
-          - ffsync
     environment:
       - SYNCSERVER_PUBLIC_URL=https://ffsync.ivan.build
       - SYNCSERVER_SECRET=${FFSYNC_SECRET}
@@ -88,43 +59,9 @@ services:
       - SYNCSERVER_ALLOW_NEW_USER=true
       - PORT=5000
     volumes:
-      - /opt/ffsync-data/:/data
+      - /mnt/hdd1/ffsync-data/:/data
     ports:
       - 5000
-
-  wekan-db:
-    image: mongo:3.2.21
-    command: mongod --smallfiles --oplogSize 128
-    networks:
-      wekan-internal:
-        aliases:
-          - wekan-db
-    volumes:
-      - /opt/wekan-data:/data/db
-      - /opt/wekan-data/dump:/dump
-    ports:
-      - 27017
-
-  wekan:
-    image: quay.io/wekan/wekan:master
-    depends_on:
-      - wekan-db
-    networks:
-      wekan-internal:
-      front:
-        aliases:
-          - wekan
-    environment:
-      - MONGO_URL=mongodb://wekan-db:27017/wekan
-      - ROOT_URL=https://boards.ivan.build
-      - WITH_API=true
-      - ACCOUNTS_LOCKOUT_KNOWN_USERS_FAILURES_BEFORE=3
-      - ACCOUNTS_LOCKOUT_KNOWN_USERS_PERIOD=60
-      - ACCOUNTS_LOCKOUT_KNOWN_USERS_FAILURE_WINDOW=15
-      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_FAILURES_BERORE=3
-      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_LOCKOUT_PERIOD=60
-      - ACCOUNTS_LOCKOUT_UNKNOWN_USERS_FAILURE_WINDOW=15
-      - BROWSER_POLICY_ENABLED=true
 
   wikijs-db:
     image: postgres:11-alpine
@@ -138,17 +75,15 @@ services:
       driver: "none"
     restart: unless-stopped
     volumes:
-      - /opt/wikijs-data:/var/lib/postgresql/data
+      - /mnt/hdd1/wikijs-data:/var/lib/postgresql/data
 
   wikijs:
-    image: requarks/wiki:2
+    image: requarks/wiki:2.2-arm
     depends_on:
       - wikijs-db
     networks:
       wikijs-internal:
       front:
-        aliases:
-          - wikijs
     environment:
       - DB_TYPE=postgres
       - DB_HOST=wikijs-db
@@ -157,17 +92,8 @@ services:
       - DB_PASS=${WIKIJS_DB_PASS}
       - DB_NAME=wikijs
     volumes:
-      - /opt/wikijs-data/file-backups:/file-backups
+      - /mnt/hdd1/wikijs-data/file-backups:/file-backups
 
 networks:
   front:
-  wekan-internal:
   wikijs-internal:
-
-volumes:
-  le-certificates:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: bind
-      device: /config/etc/letsencrypt

@@ -1,0 +1,20 @@
+[Unit]
+Description=Wekan Server
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=Wekan
+User=ivan
+Group=ivan
+Environment=MONGO_URL='mongodb://dbuser:dbpass@127.0.0.1:27017/wekan?authSource=wekan'
+Environment=ROOT_URL=http://127.0.0.1
+Environment=PORT=8001
+WorkingDirectory=/opt/bundle
+ExecStart=/usr/local/bin/node /opt/bundle/main.js
+
+[Install]
+WantedBy=multi-user.target
