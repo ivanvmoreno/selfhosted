@@ -5,6 +5,7 @@ services:
     image: nginx
     depends_on:
       - bookstack
+      - silverstrike
     volumes:
       - /etc/letsencrypt:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
@@ -12,19 +13,19 @@ services:
       - 80:80
       - 443:443
 
-bookstack:
-    image: linuxserver/bookstack
-    depends_on:
-      - bookstack-db
-    environment:
-      APP_URL: https://notes.ivan.build
-      PUID: 1000
-      PGID: 1000
-      DB_HOST: bookstack-db
-      DB_USER: ${BOOKSTACK_DB_USER}
-      DB_PASS: ${BOOKSTACK_DB_PASS}
-      DB_DATABASE: ${BOOKSTACK_DB_NAME}
-    volumes:
+  bookstack:
+      image: linuxserver/bookstack
+      depends_on:
+        - bookstack-db
+      environment:
+        APP_URL: https://notes.ivan.build
+        PUID: 1000
+        PGID: 1000
+        DB_HOST: bookstack-db
+        DB_USER: ${BOOKSTACK_DB_USER}
+        DB_PASS: ${BOOKSTACK_DB_PASS}
+        DB_DATABASE: ${BOOKSTACK_DB_NAME}
+      volumes:
       - /opt/bookstack-data:/config
 
   bookstack-db:
