@@ -6,7 +6,7 @@
 # snap install --beta certbot-dns-cloudflare
 # sudo snap connect certbot:plugin certbot-dns-cloudflare
 
-certbot certonly \
+sudo certbot certonly \
   --dns-cloudflare \
   --dns-cloudflare-credentials ~/.secrets/cloudflare.ini \
   --dns-cloudflare-propagation-seconds 60 \

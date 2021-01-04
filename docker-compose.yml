@@ -58,3 +58,29 @@ services:
       POSTGRES_PASSWORD: ${SILVERSTRIKE_DB_PASS}
     volumes:
       - /opt/silverstrike-data:/var/lib/postgresql/data
+
+  linkace:
+    image: linkace/linkace:php-nginx
+    depends_on:
+      - linkace-db
+    expose:
+      - "8080"
+    volumes:
+      - ./.env-linkace:/app/.env
+      - ./nginx-linkace.conf:/opt/docker/etc/nginx/conf.d/linkace.conf:ro
+      - linkace_logs:/app/storage/logs
+
+  linkace-db:
+    image: bitnami/mariadb:10.5
+    environment:
+      - MARIADB_ROOT_PASSWORD=${LINKACE_DB_PASS_ROOT}
+      - MARIADB_USER=${LINKACE_DB_USER}
+      - MARIADB_PASSWORD=${LINKACE_DB_PASS}
+      - MARIADB_DATABASE=${LINKACE_DB_NAME}
+    volumes:
+      - db:/bitnami
+
+volumes:
+  linkace_logs:
+  db:
+    driver: local
