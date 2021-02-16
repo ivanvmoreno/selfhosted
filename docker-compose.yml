@@ -4,7 +4,8 @@ services:
   nginx:
     image: nginx
     depends_on:
-      - bookstack
+      - linkace
+      - portainer
       - silverstrike
     volumes:
       - /etc/letsencrypt:/etc/nginx/certs
@@ -12,34 +13,6 @@ services:
     ports:
       - 80:80
       - 443:443
-
-  bookstack:
-      image: linuxserver/bookstack
-      depends_on:
-        - bookstack-db
-      environment:
-        APP_URL: https://notes.ivan.build
-        PUID: 1000
-        PGID: 1000
-        DB_HOST: bookstack-db
-        DB_USER: ${BOOKSTACK_DB_USER}
-        DB_PASS: ${BOOKSTACK_DB_PASS}
-        DB_DATABASE: ${BOOKSTACK_DB_NAME}
-      volumes:
-      - /opt/bookstack-data:/config
-
-  bookstack-db:
-    image: linuxserver/mariadb
-    environment:
-      PUID: 1000
-      PGID: 1000
-      MYSQL_ROOT_PASSWORD: ${BOOKSTACK_DB_PASS_ROOT}
-      TZ: Europe/London
-      MYSQL_DATABASE: ${BOOKSTACK_DB_NAME}
-      MYSQL_USER: ${BOOKSTACK_DB_USER}
-      MYSQL_PASSWORD: ${BOOKSTACK_DB_PASS}
-    volumes:
-      - /opt/bookstack-data:/config
 
   silverstrike:
     image: simhnna/silverstrike
@@ -68,7 +41,7 @@ services:
     volumes:
       - ./.env-linkace:/app/.env
       - ./nginx-linkace.conf:/opt/docker/etc/nginx/conf.d/linkace.conf:ro
-      - linkace_logs:/app/storage/logs
+      - linkace-logs:/app/storage/logs
 
   linkace-db:
     image: bitnami/mariadb:10.5
@@ -78,9 +51,17 @@ services:
       - MARIADB_PASSWORD=${LINKACE_DB_PASS}
       - MARIADB_DATABASE=${LINKACE_DB_NAME}
     volumes:
-      - db:/bitnami
+      - linkace-db:/bitnami
+
+  portainer:
+    image: portainer/portainer-ce
+    ports:
+      - 9000:9000
+    volumes:
+      - portainer-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
-  linkace_logs:
-  db:
-    driver: local
+  linkace-logs:
+  linkace-db:
+  portainer-data:
