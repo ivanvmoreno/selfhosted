@@ -69,6 +69,7 @@ services:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
     expose:
+      - 80
       - 3012
     volumes:
       - bw-data:/data
