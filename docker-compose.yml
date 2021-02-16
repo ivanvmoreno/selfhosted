@@ -4,9 +4,11 @@ services:
   nginx:
     image: nginx
     depends_on:
+      - bitwarden
       - linkace
       - portainer
       - silverstrike
+      - syncthing
     volumes:
       - /etc/letsencrypt:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
@@ -37,7 +39,7 @@ services:
     depends_on:
       - linkace-db
     expose:
-      - "8080"
+      - 8080
     volumes:
       - ./.env-linkace:/app/.env
       - ./nginx-linkace.conf:/opt/docker/etc/nginx/conf.d/linkace.conf:ro
@@ -46,22 +48,50 @@ services:
   linkace-db:
     image: bitnami/mariadb:10.5
     environment:
-      - MARIADB_ROOT_PASSWORD=${LINKACE_DB_PASS_ROOT}
-      - MARIADB_USER=${LINKACE_DB_USER}
-      - MARIADB_PASSWORD=${LINKACE_DB_PASS}
-      - MARIADB_DATABASE=${LINKACE_DB_NAME}
+      MARIADB_ROOT_PASSWORD: ${LINKACE_DB_PASS_ROOT}
+      MARIADB_USER: ${LINKACE_DB_USER}
+      MARIADB_PASSWORD: ${LINKACE_DB_PASS}
+      MARIADB_DATABASE: ${LINKACE_DB_NAME}
     volumes:
       - linkace-db:/bitnami
 
   portainer:
     image: portainer/portainer-ce
-    ports:
-      - 9000:9000
+    expose:
+      - 9000
     volumes:
       - portainer-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
 
+  bitwarden:
+    image: bitwardenrs/server
+    environment:
+      WEBSOCKET_ENABLED: "true"
+      SIGNUPS_ALLOWED: "false"
+    expose:
+      - 3012
+    volumes:
+      - bw-data:/data
+
+  syncthing:
+    image: linuxserver/syncthing:version-v1.13.1
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/London"
+      UMASK_SET: "022"
+    expose:
+      - 8384
+    volumes:
+      - syncthing-config:/config
+      - /home/ivanm/Sync:/data
+    ports:
+      - 22000:22000
+      - 21027:21027/udp
+
 volumes:
+  bw-data:
   linkace-logs:
   linkace-db:
   portainer-data:
+  syncthing-config:
