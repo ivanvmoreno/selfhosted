@@ -68,6 +68,7 @@ services:
     environment:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
+      ADMIN_TOKEN: ${BW_ADMIN_TOKEN}
     expose:
       - 80
       - 3012
