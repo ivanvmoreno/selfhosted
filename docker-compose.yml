@@ -75,11 +75,12 @@ services:
       POSTGRES_USER: ${NEXTCLOUD_DB_USER}
       POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASS}
     volumes:
-      - silverstrike-db:/var/lib/postgresql/data
+      - nextcloud-db:/var/lib/postgresql/data
 
 volumes:
   bw-data:
   nextcloud-config:
+  nextcloud-db:
   nextcloud-userdata:
   portainer-data:
   silverstrike-db:
