@@ -5,10 +5,9 @@ services:
     image: nginx
     depends_on:
       - bitwarden
-      - linkace
+      - nextcloud
       - portainer
       - silverstrike
-      - syncthing
     volumes:
       - /etc/letsencrypt:/etc/nginx/certs
       - ./reverse-proxy.conf:/etc/nginx/conf.d/reverse-proxy.conf
@@ -32,31 +31,10 @@ services:
       POSTGRES_USER: ${SILVERSTRIKE_DB_USER}
       POSTGRES_PASSWORD: ${SILVERSTRIKE_DB_PASS}
     volumes:
-      - /opt/silverstrike-data:/var/lib/postgresql/data
-
-  linkace:
-    image: linkace/linkace:php-nginx
-    depends_on:
-      - linkace-db
-    expose:
-      - 8080
-    volumes:
-      - ./.env-linkace:/app/.env
-      - ./nginx-linkace.conf:/opt/docker/etc/nginx/conf.d/linkace.conf:ro
-      - linkace-logs:/app/storage/logs
-
-  linkace-db:
-    image: bitnami/mariadb:10.5
-    environment:
-      MARIADB_ROOT_PASSWORD: ${LINKACE_DB_PASS_ROOT}
-      MARIADB_USER: ${LINKACE_DB_USER}
-      MARIADB_PASSWORD: ${LINKACE_DB_PASS}
-      MARIADB_DATABASE: ${LINKACE_DB_NAME}
-    volumes:
-      - linkace-db:/bitnami
+      - silverstrike-db:/var/lib/postgresql/data
 
   portainer:
-    image: portainer/portainer-ce
+    image: portainer/portainer-ce:2.1.1
     expose:
       - 9000
     volumes:
@@ -64,7 +42,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   bitwarden:
-    image: bitwardenrs/server
+    image: bitwardenrs/server:1.19.0
     environment:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
@@ -75,25 +53,33 @@ services:
     volumes:
       - bw-data:/data
 
-  syncthing:
-    image: linuxserver/syncthing:version-v1.13.1
+  nextcloud:
+    image: nextcloud:20.0.7-apache
+    depends_on:
+      - nextcloud-db
     environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "Europe/London"
-      UMASK_SET: "022"
-    expose:
-      - 8384
+      POSTGRES_DB: ${NEXTCLOUD_DB_NAME}
+      POSTGRES_USER: ${NEXTCLOUD_DB_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASS}
+      POSTGRES_HOST: nextcloud-db
+      NEXTCLOUD_DATA_DIR: /userdata
     volumes:
-      - syncthing-config:/config
-      - /home/ivanm/Sync:/data
-    ports:
-      - 22000:22000
-      - 21027:21027/udp
+      - nextcloud-config:/var/www/html
+      - nextcloud-userdata:/userdata
+      - /etc/localtime:/etc/localtime:ro
+
+  nextcloud-db:
+    image: postgres:10.3
+    environment:
+      POSTGRES_DB: ${NEXTCLOUD_DB_NAME}
+      POSTGRES_USER: ${NEXTCLOUD_DB_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASS}
+    volumes:
+      - silverstrike-db:/var/lib/postgresql/data
 
 volumes:
   bw-data:
-  linkace-logs:
-  linkace-db:
+  nextcloud-config:
+  nextcloud-userdata:
   portainer-data:
-  syncthing-config:
+  silverstrike-db:
