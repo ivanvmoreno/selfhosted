@@ -28,10 +28,6 @@
 -A INPUT -j REJECT
 -A FORWARD -j REJECT
 
-#  Syncthing
--A INPUT -p tcp --dport 22000 -j ACCEPT
--A INPUT -p udp --dport 21027 -j ACCEPT
-
 # Bitwarden
 -A INPUT -p tcp --dport 3012 -j ACCEPT
 
